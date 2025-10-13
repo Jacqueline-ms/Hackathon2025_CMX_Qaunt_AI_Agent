@@ -2,9 +2,9 @@
   "name": "azure-blade-analytics-dashboard",
   "version": "1.0.0",
   "description": "Interactive analytics dashboard for Azure Portal blade telemetry data, providing actionable insights into user behavior and engagement patterns.",
-  "main": "index.html",
+  "main": "server.js",
   "scripts": {
-    "start": "python -m http.server 8000",
+    "start": "node server.js",
     "serve": "npx serve . -p 8000",
     "dev": "npx live-server --port=8000 --open=/index.html",
     "validate": "node scripts/validate-data.js",
@@ -51,6 +51,11 @@
     "url": "https://github.com/johchoi-ms/Hackathon2025_CMX_Qaunt_AI_Agent/issues"
   },
   "homepage": "https://johchoi-ms.github.io/Hackathon2025_CMX_Qaunt_AI_Agent/",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0"
+  },
   "devDependencies": {
     "clean-css-cli": "^5.6.2",
     "lighthouse": "^11.4.0",
