@@ -1,7 +1,7 @@
 
 # Azure Blade Analytics Dashboard
 
-**Hackathon 2025 Project**
+**Hackathon 2025 Project** - *Deployed: October 16, 2025*
 
 A comprehensive interactive analytics dashboard for Azure Portal blade telemetry data, providing actionable insights into user behavior, engagement patterns, and potential UX improvements.
 
