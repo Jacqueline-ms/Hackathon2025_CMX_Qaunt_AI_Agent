@@ -5,17 +5,22 @@ const helmet = require('helmet');
 
 const app = express();
 
-// Security middleware
+// Security middleware with relaxed CSP for dashboard functionality
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://d3js.org", "https://cdn.jsdelivr.net"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://d3js.org", "https://cdn.jsdelivr.net"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"]
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'", "https:"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"]
         }
-    }
+    },
+    crossOriginEmbedderPolicy: false
 }));
 
 // CORS for future API calls
@@ -24,17 +29,48 @@ app.use(cors());
 // Parse JSON bodies for API requests
 app.use(express.json());
 
-// Serve static files (dashboard assets)
-app.use(express.static(__dirname));
+// Serve static files (dashboard assets) with explicit routes
+app.use(express.static(__dirname, {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        } else if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        } else if (path.endsWith('.json')) {
+            res.setHeader('Content-Type', 'application/json');
+        }
+    }
+}));
 
-// Main dashboard route
+// Explicit routes for critical assets to prevent 500 errors
+app.get('/dashboard.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.sendFile(path.join(__dirname, 'dashboard.js'));
+});
+
+app.get('/dashboard.css', (req, res) => {
+    res.setHeader('Content-Type', 'text/css');
+    res.sendFile(path.join(__dirname, 'dashboard.css'));
+});
+
+app.get('/test_ver11.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.sendFile(path.join(__dirname, 'test_ver11.json'));
+});
+
+// Main dashboard route - serve the actual dashboard
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
 // Dashboard route (for direct access)
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+// Legacy index route (redirect to dashboard)
+app.get('/index', (req, res) => {
+    res.redirect('/');
 });
 
 // API Routes (Future extensibility)
