@@ -1,7 +1,154 @@
 # Deployment Guide
 Azure Blade Analytics Dashboard - Production Deployment
 
-## Quick Start Options
+## 🔐 Authentication Architecture
+
+### Local Development
+- **Uses:** Your personal Azure CLI credentials
+- **How:** `az login` → `DefaultAzureCredential` picks up your token
+- **Limitation:** Only works for you on your machine
+
+### Production Deployment
+- **Uses:** Managed Identity (Azure-hosted) or Service Principal (other)
+- **How:** The application gets its own identity with Kusto permissions
+- **Benefit:** All internal users can access the app without individual Kusto permissions
+
+---
+
+## 🔐 Required Permissions for Live Kusto Data
+
+### For Local Development (You)
+**IMPORTANT:** To use live Azure Portal telemetry data, users need access to the Kusto cluster:
+
+**Access Requirements:**
+- **Cluster:** `azportalpartnerrow.westus.kusto.windows.net`
+- **Database:** `AzurePortal`
+- **Required Role:** `Viewer` or `User` on the database
+
+### For Production Deployment (The Application)
+**The app needs its own identity with Kusto access:**
+
+#### Step 1: Create Managed Identity (if deploying to Azure)
+```bash
+# The Managed Identity is automatically created when you deploy to:
+# - Azure App Service
+# - Azure Container Apps
+# - Azure Kubernetes Service (AKS)
+```
+
+#### Step 2: Grant Kusto Permissions to the App Identity
+Once deployed, run these commands in Kusto Web Explorer:
+
+```kql
+// For Managed Identity (Azure-hosted app)
+.add database AzurePortal viewers ('aadapp=<MANAGED_IDENTITY_CLIENT_ID>') 'Dashboard App'
+
+// For Service Principal (non-Azure hosting)
+.add database AzurePortal viewers ('aadapp=<SERVICE_PRINCIPAL_CLIENT_ID>;<TENANT_ID>') 'Dashboard App'
+```
+
+**To get the Managed Identity Client ID:**
+```bash
+# After deploying to Azure App Service
+az webapp identity show --name <app-name> --resource-group <rg-name> --query principalId -o tsv
+
+# After deploying to Azure Container Apps
+az containerapp identity show --name <app-name> --resource-group <rg-name> --query principalId -o tsv
+```
+
+#### Step 3: Verify App Has Access
+After granting permissions, wait 5-10 minutes, then test the "Refresh from Kusto" button in your deployed app.
+
+---
+
+### For End Users (Internal Employees)
+**Good news:** End users do NOT need individual Kusto permissions!
+- The app queries Kusto using its own identity
+- Users just need to access the web app URL
+- Optionally: Add Azure AD authentication to control who can access your app
+
+---
+
+## 🚀 Deployment Options
+
+### Option 1: Azure Container Apps (Recommended)
+
+**Best for:** Production apps with Managed Identity and auto-scaling
+
+```bash
+# 1. Create resource group
+az group create --name rg-blade-analytics --location eastus
+
+# 2. Create Container Apps environment
+az containerapp env create \
+  --name blade-analytics-env \
+  --resource-group rg-blade-analytics \
+  --location eastus
+
+# 3. Build and push Docker image
+docker build -t blade-analytics:latest .
+az acr create --name bladedashboard --resource-group rg-blade-analytics --sku Basic
+az acr login --name bladedashboard
+docker tag blade-analytics:latest bladedashboard.azurecr.io/blade-analytics:latest
+docker push bladedashboard.azurecr.io/blade-analytics:latest
+
+# 4. Deploy Container App with Managed Identity
+az containerapp create \
+  --name blade-analytics-app \
+  --resource-group rg-blade-analytics \
+  --environment blade-analytics-env \
+  --image bladedashboard.azurecr.io/blade-analytics:latest \
+  --target-port 3000 \
+  --ingress external \
+  --system-assigned
+
+# 5. Get the Managed Identity Client ID
+IDENTITY_ID=$(az containerapp identity show \
+  --name blade-analytics-app \
+  --resource-group rg-blade-analytics \
+  --query principalId -o tsv)
+
+echo "Grant this identity Kusto permissions: $IDENTITY_ID"
+```
+
+**Then run in Kusto Web Explorer:**
+```kql
+.add database AzurePortal viewers ('aadapp=<IDENTITY_ID>') 'Blade Analytics Dashboard'
+```
+
+### Option 2: Azure App Service (Easier Setup)
+
+**Best for:** Quick deployment with built-in CI/CD
+
+```bash
+# 1. Create App Service
+az webapp create \
+  --name blade-analytics \
+  --resource-group rg-blade-analytics \
+  --plan blade-analytics-plan \
+  --runtime "NODE:18-lts"
+
+# 2. Enable Managed Identity
+az webapp identity assign \
+  --name blade-analytics \
+  --resource-group rg-blade-analytics
+
+# 3. Deploy from GitHub (optional)
+az webapp deployment source config \
+  --name blade-analytics \
+  --resource-group rg-blade-analytics \
+  --repo-url https://github.com/your-repo \
+  --branch main \
+  --manual-integration
+
+# 4. Get the Managed Identity for Kusto permissions
+az webapp identity show \
+  --name blade-analytics \
+  --resource-group rg-blade-analytics \
+  --query principalId -o tsv
+```
+
+### Option 3: Azure Static Web Apps (Dashboard Only - No Live Data)
 
 ### Option 1: Azure Static Web Apps (Recommended)
 Perfect for Azure-focused dashboard with automatic CI/CD

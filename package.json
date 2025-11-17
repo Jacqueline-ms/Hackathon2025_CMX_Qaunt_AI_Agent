@@ -37,7 +37,7 @@
   },
   "contributors": [
     "Amit Yanovich Barash",
-    "Can Zhao", 
+    "Can Zhao",
     "John Choi",
     "Micheal Frederick",
     "Yev Diachek"
@@ -52,8 +52,11 @@
   },
   "homepage": "https://johchoi-ms.github.io/Hackathon2025_CMX_Qaunt_AI_Agent/",
   "dependencies": {
-    "express": "^4.18.2",
+    "@azure/identity": "^4.13.0",
+    "azure-kusto-data": "^7.0.1",
+    "azure-kusto-ingest": "^7.0.1",
     "cors": "^2.8.5",
+    "express": "^4.18.2",
     "helmet": "^7.0.0"
   },
   "devDependencies": {
@@ -76,7 +79,7 @@
   },
   "files": [
     "index.html",
-    "dashboard.html", 
+    "dashboard.html",
     "dashboard.css",
     "dashboard.js",
     "test_ver11.json",

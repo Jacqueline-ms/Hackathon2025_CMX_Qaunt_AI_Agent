@@ -808,3 +808,172 @@ body {
         page-break-inside: avoid;
     }
 }
+
+/* Header Actions */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.header-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: #0078d4;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #106ebe;
+}
+
+.btn-secondary {
+    background: #f3f2f1;
+    color: #323130;
+    border: 1px solid #d2d0ce;
+}
+
+.btn-secondary:hover {
+    background: #edebe9;
+}
+
+/* Large Modal for Prompt Management */
+.large-modal {
+    width: 90% !important;
+    max-width: 1200px !important;
+    height: 80vh;
+    max-height: none !important;
+}
+
+/* Prompt Manager Styles */
+.prompt-manager {
+    display: flex;
+    flex-direction: column;
+    height: 70vh;
+    gap: 20px;
+}
+
+.prompt-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #edebe9;
+}
+
+.prompt-selector label {
+    font-weight: 600;
+    color: #323130;
+}
+
+.prompt-selector select {
+    padding: 8px 12px;
+    border: 1px solid #d2d0ce;
+    border-radius: 4px;
+    background: white;
+    font-size: 14px;
+    min-width: 300px;
+}
+
+.prompt-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.editor-toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#promptEditor {
+    flex: 1;
+    padding: 15px;
+    border: 1px solid #d2d0ce;
+    border-radius: 6px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+    background: #f8f9fa;
+}
+
+#promptEditor:focus {
+    outline: none;
+    border-color: #0078d4;
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
+}
+
+.prompt-info {
+    background: #fff4ce;
+    padding: 10px 15px;
+    border-radius: 4px;
+    border-left: 4px solid #ffb900;
+    font-size: 13px;
+}
+
+.prompt-preview {
+    background: #f3f2f1;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #d2d0ce;
+}
+
+.prompt-preview h4 {
+    margin-top: 0;
+    color: #323130;
+}
+
+#promptPreviewContent {
+    background: white;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #d2d0ce;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.6;
+}
+
+/* Responsive adjustments for prompt manager */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .large-modal {
+        width: 95% !important;
+        height: 90vh;
+    }
+    
+    .prompt-selector {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .prompt-selector select {
+        min-width: 100%;
+    }
+}

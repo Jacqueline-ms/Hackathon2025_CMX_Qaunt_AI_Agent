@@ -4,8 +4,10 @@ let queries = {};
 
 // Initialize dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard: DOM loaded, initializing...');
     loadData();
     initializeModal();
+    console.log('Dashboard: Initialization complete');
 });
 
 // Load data from JSON file
@@ -659,27 +661,53 @@ function wrap(text, width) {
 
 // Modal functions
 function initializeModal() {
-    const modal = document.getElementById('queryModal');
-    const closeBtn = document.getElementsByClassName('close')[0];
+    const queryModal = document.getElementById('queryModal');
+    const promptModal = document.getElementById('promptModal');
+    
+    // Get close buttons specific to each modal
+    const queryCloseBtn = queryModal?.querySelector('.close');
+    const promptCloseBtn = promptModal?.querySelector('.close');
 
-    closeBtn.onclick = function() {
-        modal.style.display = 'none';
-    };
+    // Query modal close button
+    if (queryCloseBtn) {
+        queryCloseBtn.onclick = function() {
+            queryModal.style.display = 'none';
+        };
+    }
 
+    // Prompt modal close button (additional safety)
+    if (promptCloseBtn) {
+        promptCloseBtn.onclick = function() {
+            closePromptModal();
+        };
+    }
+
+    // Close modals when clicking outside
     window.onclick = function(event) {
-        if (event.target === modal) {
-            modal.style.display = 'none';
+        if (event.target === queryModal) {
+            queryModal.style.display = 'none';
+        }
+        if (event.target === promptModal) {
+            closePromptModal();
         }
     };
 }
 
 function showQuery(queryType) {
+    console.log('showQuery called with:', queryType);
     const modal = document.getElementById('queryModal');
     const queryText = document.getElementById('queryText');
+    
+    console.log('Modal element:', modal);
+    console.log('QueryText element:', queryText);
+    console.log('Queries object:', queries);
     
     if (queries[queryType]) {
         queryText.textContent = queries[queryType];
         modal.style.display = 'block';
+        console.log('Modal should now be visible');
+    } else {
+        console.error('Query not found for type:', queryType);
     }
 }
 
@@ -769,4 +797,375 @@ window.addEventListener('resize', function() {
             createSankeyDiagram();
         }, 100);
     }
+});
+
+// Prompt Management Functionality
+let currentPrompts = {
+    writeQuery: '',
+    validateQuery: '',
+    createDashboard: '',
+    custom: ''
+};
+
+// Default prompt templates
+const defaultPrompts = {
+    writeQuery: `### Pre
+- Ask for list of Blades to be included.
+- Ask for the name of the final json file.
+
+### Goal
+- Save Kusto queries and result data to the json file.
+
+### Data Source
+cluster('azportalpartnerrow.westus.kusto.windows.net').database('AzurePortal').ClientTelemetry 
+
+### Key Fields
+- PreciseTimeStamp, name, action, actionModifier, data, userTypeHint, requestUri, tenantId, sessionId, tenantId, userId
+
+### Time range: 
+| where PreciseTimeStamp >= ago(28d)
+
+### Blade scope: 
+| where action == "BladeFullReady"
+| where name in ( "bladeName1", "bladeName2") 
+
+### External users only:
+| where userTypeHint == "" and requestUri startswith https://portal. And tenantId!='72f988bf-86f1-41af-91ab-2d7cd011db47'
+
+### Non-negotiable Rules:
+- Use only real fields and values from the data. No assumptions, no invented columns or metrics.
+- Do NOT compare to previous months unless the data explicitly contains it. If not available, mark as N/A and explain.
+- Every metric must include the full KQL query used to generate it.
+- If a required field is missing, return N/A and add a "Telemetry Gap" note with a suggested field/event.
+- Use UTC time unless a timezone column is explicitly present.
+- Dashboard must be product-agnostic (generic across Azure blades/features).
+
+### Metrics to Implement
+- Monthly Active Users (MAU) per blade and overall (last 28 days)
+- Weekly Active Users (WAU) per blade and overall
+    - trend of last 4 weeks, starting from ago(28d)
+- Stickiness (WAU/MAU) per blade and overall
+- Average Sessions per User (per blade and overall)
+- User journey between blades
+    - I will build Sankey graph that you can see from this (https://d3-graph-gallery.com/sankey). Prepare the data as needed
+- Session Frequency: avg number of active days per user in 28d
+
+## Now Execute:
+- Connect via AZURE-MCP-SERVER
+- Run kusto queries
+- save Kusto queries and result data to the json file.`,
+
+    validateQuery: `### Pre
+- Ask for the jsonFile name.
+
+### Goal
+- Validate the query results
+
+### Data Source
+cluster('azportalpartnerrow.westus.kusto.windows.net').database('AzurePortal').ClientTelemetry 
+
+### Steps
+- Execute the queries in the json file.
+- If valid query result exits:
+    - Compare the retrieved query results with the expected results in \`test.json\`
+    - If the discrepancy between results is **less than 5%**, add a comment stating the validation is successful, including the current datetime.
+    - If the discrepancy is **greater than 5%**, add a comment marking it as a red flag, also including the current datetime.
+- If valid query result doesn't exits:
+    - run the queries and update the result.`,
+
+    createDashboard: `## Pre
+- Ask for json file to use
+
+### Goal
+- Create an interactive dashboard in HTML.
+- If neccessary, 
+    - 1) create js and css file to support HTML.
+    - 2) utilze visualizations from https://d3js.org/
+- Provide data-driven insights and actionable suggestions.
+
+### Steps
+- Import data from json file
+- Analyze the data to generate meaningful insights and practical suggestions.
+- Create a dashboard (HTML) featuring graphs and tables. And add insights and suggestions generated from the privious step. followings are the sections to be created in the dashboard
+    - Monthly Active Users (MAU) per blade and overall (last 28 days)
+    - Weekly Active Users (WAU) per blade and overall
+        - trend of last 4 weeks, starting from ago(28d)
+    - Stickiness (WAU/MAU) per blade and overall
+    - Average Sessions per User (per blade and overall)
+    - User journey between blades: Build Sankey graph (referrer: https://d3-graph-gallery.com/sankey).
+    - Session Frequency: avg number of active days per user in 28d
+
+- Must Add 
+    - 1) an executive summary at the top of the dashboard (no more than five sentences).
+    - 2) Anomalies
+    - 3) add button that is popping up the query for every visualizaion and table.
+- Add if neccessary
+    - 1) trend changes`,
+
+    custom: `### Goal
+Write your custom AI prompt here...
+
+### Instructions
+- Be specific about what you want the AI to do
+- Include clear steps and requirements
+- Add any constraints or rules
+- Specify the expected output format
+
+### Example Structure:
+1. **Data Source**: Where to get the data
+2. **Processing Steps**: What to do with the data  
+3. **Output Format**: How to present results
+4. **Validation**: How to verify correctness`
+};
+
+// Load prompts from localStorage or use defaults
+function loadStoredPrompts() {
+    const stored = localStorage.getItem('aiPrompts');
+    if (stored) {
+        try {
+            currentPrompts = { ...defaultPrompts, ...JSON.parse(stored) };
+        } catch (e) {
+            console.warn('Failed to load stored prompts, using defaults');
+            currentPrompts = { ...defaultPrompts };
+        }
+    } else {
+        currentPrompts = { ...defaultPrompts };
+    }
+}
+
+// Show prompt management modal
+function showPromptManager() {
+    console.log('Opening prompt manager...');
+    loadStoredPrompts();
+    document.getElementById('promptModal').style.display = 'block';
+    loadPromptType(); // Load the default prompt
+}
+
+// Close prompt management modal
+function closePromptModal() {
+    const promptModal = document.getElementById('promptModal');
+    const promptPreview = document.getElementById('promptPreview');
+    
+    if (promptModal) {
+        promptModal.style.display = 'none';
+    }
+    if (promptPreview) {
+        promptPreview.style.display = 'none';
+    }
+    
+    console.log('Prompt modal closed');
+}
+
+// Load selected prompt type
+function loadPromptType() {
+    const promptType = document.getElementById('promptType').value;
+    const editor = document.getElementById('promptEditor');
+    
+    if (currentPrompts[promptType]) {
+        editor.value = currentPrompts[promptType];
+    } else {
+        editor.value = defaultPrompts[promptType] || '';
+    }
+    
+    // Hide preview when switching prompts
+    document.getElementById('promptPreview').style.display = 'none';
+}
+
+// Reset prompt to default
+function resetPrompt() {
+    if (confirm('Are you sure you want to reset this prompt to default? Any changes will be lost.')) {
+        const promptType = document.getElementById('promptType').value;
+        const editor = document.getElementById('promptEditor');
+        editor.value = defaultPrompts[promptType] || '';
+    }
+}
+
+// Preview prompt (convert markdown to HTML preview)
+function previewPrompt() {
+    const promptText = document.getElementById('promptEditor').value;
+    const preview = document.getElementById('promptPreview');
+    const content = document.getElementById('promptPreviewContent');
+    
+    // Simple markdown-to-HTML conversion
+    let html = promptText
+        .replace(/### (.*)/g, '<h3>$1</h3>')
+        .replace(/## (.*)/g, '<h2>$1</h2>')
+        .replace(/# (.*)/g, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/\n- (.*)/g, '\n<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/^(?!<[h|u|l])(.+)$/gm, '<p>$1</p>');
+    
+    content.innerHTML = html;
+    preview.style.display = 'block';
+}
+
+// Save prompt changes
+function savePrompt() {
+    const promptType = document.getElementById('promptType').value;
+    const promptText = document.getElementById('promptEditor').value;
+    
+    if (!promptText.trim()) {
+        alert('Please enter a prompt before saving.');
+        return;
+    }
+    
+    // Update current prompts
+    currentPrompts[promptType] = promptText;
+    
+    // Save to localStorage
+    try {
+        localStorage.setItem('aiPrompts', JSON.stringify(currentPrompts));
+        
+        // Show success message
+        const saveBtn = document.querySelector('.prompt-manager button[onclick="savePrompt()"]');
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = '✓ Saved!';
+        saveBtn.style.background = '#107c10';
+        
+        setTimeout(() => {
+            saveBtn.textContent = originalText;
+            saveBtn.style.background = '#0078d4';
+        }, 2000);
+        
+        console.log('Prompt saved successfully:', promptType);
+    } catch (e) {
+        alert('Failed to save prompt. Please try again.');
+        console.error('Failed to save prompt:', e);
+    }
+}
+
+// Export prompts to file
+function exportPrompts() {
+    const dataStr = JSON.stringify(currentPrompts, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = 'ai-prompts-' + new Date().toISOString().split('T')[0] + '.json';
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+}
+
+// Import prompts from file
+function importPrompts(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            currentPrompts = { ...defaultPrompts, ...imported };
+            localStorage.setItem('aiPrompts', JSON.stringify(currentPrompts));
+            loadPromptType(); // Refresh the editor
+            alert('Prompts imported successfully!');
+        } catch (err) {
+            alert('Failed to import prompts. Please check the file format.');
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Live Kusto Query Functions
+async function refreshFromKusto() {
+    console.log('Refreshing data from Kusto...');
+    
+    // Show loading indicator
+    const refreshBtn = document.querySelector('button[onclick="refreshFromKusto()"]');
+    const originalText = refreshBtn.textContent;
+    refreshBtn.textContent = '🔄 Connecting...';
+    refreshBtn.disabled = true;
+    
+    try {
+        // Simple test query to verify connection
+        const sampleQuery = `
+// Simple query to test connection
+print TestMessage = "Connection successful!", 
+      Timestamp = now(), 
+      TestNumber = 123
+| limit 1
+        `.trim();
+        
+        // Try live Kusto first, fallback to dry-run if needed
+        const response = await fetch('/api/execute-query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                query: sampleQuery,
+                cluster: 'https://azportalpartnerrow.westus.kusto.windows.net',
+                database: 'AzurePortal',
+                dryRun: false // Set to true for testing mode
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok || response.status === 206) { // 206 = partial content (fallback)
+            console.log('Kusto query result:', result);
+            
+            // Show appropriate success message based on mode
+            if (result.status === 'live-success') {
+                refreshBtn.textContent = '🟢 Live Data!';
+                refreshBtn.style.background = '#107c10';
+                
+                const resultCount = result.data?.rows?.length || 0;
+                alert(`🎉 Live Kusto Connection Successful!\n\n` +
+                      `📊 Mode: ${result.mode}\n` +
+                      `🎯 Cluster: ${result.cluster}\n` +
+                      `📂 Database: ${result.database}\n` +
+                      `📈 Rows Retrieved: ${resultCount}\n` +
+                      `⏱️ Executed: ${new Date(result.executedAt).toLocaleString()}\n\n` +
+                      `✅ Your dashboard is now connected to live Azure Portal telemetry!`);
+                
+                console.log('🔥 Live Kusto data:', result.data);
+                
+            } else if (result.status === 'dry-run-success') {
+                refreshBtn.textContent = '🔵 Test OK';
+                refreshBtn.style.background = '#0078d4';
+                
+                alert(`🧪 Dry Run Successful!\n\n` +
+                      `Mode: ${result.mode}\n` +
+                      `Query validated and ready for live execution.\n\n` +
+                      `To enable live mode, set dryRun: false in dashboard.js`);
+                      
+            } else if (result.status === 'fallback-mock') {
+                refreshBtn.textContent = '🟡 Fallback';
+                refreshBtn.style.background = '#ffb900';
+                
+                alert(`⚠️ Kusto Connection Issue\n\n` +
+                      `Issue: ${result.error}\n` +
+                      `Fallback: Using mock data\n\n` +
+                      `Check Azure authentication and permissions.`);
+            }
+            
+        } else {
+            throw new Error(result.error || 'Failed to execute query');
+        }
+        
+    } catch (error) {
+        console.error('Kusto query failed:', error);
+        refreshBtn.textContent = '❌ Failed';
+        refreshBtn.style.background = '#d13438';
+        
+        alert(`Kusto connection failed: ${error.message}\n\nThis is expected - you need to implement authentication for production use.`);
+    }
+    
+    // Reset button after delay
+    setTimeout(() => {
+        refreshBtn.textContent = originalText;
+        refreshBtn.style.background = '';
+        refreshBtn.disabled = false;
+    }, 3000);
+}
+
+// Initialize prompt management on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadStoredPrompts();
 });

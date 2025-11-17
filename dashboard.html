@@ -12,8 +12,23 @@
     <div class="dashboard-container">
         <!-- Header -->
         <header class="dashboard-header">
-            <h1>Azure Policy Blade Analytics Dashboard - Test</h1>
-            <p class="last-updated">Last Updated: 2025-09-19 | Data Range: Last 28 Days</p>
+            <div class="header-content">
+                <div class="header-main">
+                    <h1>Azure Policy Blade Analytics Dashboard - Test</h1>
+                    <p class="last-updated">Last Updated: 2025-09-19 | Data Range: Last 28 Days</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-secondary" onclick="refreshFromKusto()">
+                        🔄 Refresh from Kusto
+                    </button>
+                    <button class="btn-secondary" onclick="showPromptManager()">
+                        🤖 Manage AI Prompts
+                    </button>
+                    <button class="btn-primary" onclick="showQuery('help')">
+                        📚 Help
+                    </button>
+                </div>
+            </div>
         </header>
 
         <!-- Executive Summary -->
@@ -198,6 +213,48 @@
                 </div>
             </div>
         </section>
+    </div>
+
+    <!-- Prompt Management Modal -->
+    <div id="promptModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closePromptModal()">&times;</span>
+            <h3>🤖 AI Prompt Management</h3>
+            
+            <div class="prompt-manager">
+                <div class="prompt-selector">
+                    <label for="promptType">Select Workflow:</label>
+                    <select id="promptType" onchange="loadPromptType()">
+                        <option value="writeQuery">Data Extraction (writeQuery_n_retrieveData.md)</option>
+                        <option value="validateQuery">Data Validation (validateQuery.md)</option>
+                        <option value="createDashboard">Dashboard Creation (createDashboard.md)</option>
+                        <option value="custom">Custom Prompt</option>
+                    </select>
+                </div>
+
+                <div class="prompt-editor">
+                    <div class="editor-toolbar">
+                        <button onclick="resetPrompt()" class="btn-secondary">Reset to Default</button>
+                        <button onclick="previewPrompt()" class="btn-secondary">Preview</button>
+                        <button onclick="savePrompt()" class="btn-primary">Save Changes</button>
+                    </div>
+                    
+                    <textarea id="promptEditor" placeholder="Enter your AI prompt in markdown format...">
+Loading prompt...
+                    </textarea>
+                    
+                    <div class="prompt-info">
+                        <p><strong>Instructions:</strong> Edit the natural language prompt that will be used by AI agents. 
+                        Use markdown format with clear sections like ### Goal, ### Steps, ### Rules, etc.</p>
+                    </div>
+                </div>
+
+                <div class="prompt-preview" id="promptPreview" style="display: none;">
+                    <h4>Preview:</h4>
+                    <div id="promptPreviewContent"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modal for showing queries -->
